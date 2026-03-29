@@ -12,12 +12,13 @@ from datetime import datetime
 # GitHub        : https://github.com/bartoszpiaseckipipeline
 # License       : MIT
 #
-# Version       : 0.1.0
+# Version       : 0.1.1
 #
-#      0.1.0
+#      0.0.0
 #      │ │ └── PATCH (bug fixes)
 #      │ └──── MINOR (new features)
 #      └────── MAJOR (breaking changes)
+#
 #
 # Usage:
 #
@@ -32,7 +33,6 @@ from datetime import datetime
 #
 # --------------------------------
 
-
 # Store output lines
 output = []
 
@@ -44,14 +44,16 @@ def collect_collection_data(collection, indent=0):
     """
     output.append("  " * indent + f"[COLLECTION] {collection.name}")
 
-    for obj in collection.objects:
+    # FIX: correct indentation + sorting
+    for obj in sorted(collection.objects, key=lambda o: o.name):
         output.append("  " * (indent + 1) + f"- {obj.name} [{obj.type}]")
 
-    for child in collection.children:
+    # FIX: sorted children for stable output
+    for child in sorted(collection.children, key=lambda c: c.name):
         collect_collection_data(child, indent + 1)
 
 
-# Get active collection from the current view layer (Outliner selection)
+# Get active collection from the current view layer
 layer_collection = bpy.context.view_layer.active_layer_collection
 
 if layer_collection is None:
@@ -69,7 +71,11 @@ output.append("# ----------------------------------------")
 output.append(f"# Export Date   : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 output.append(f"# Scene         : {bpy.context.scene.name}")
 output.append(f"# Collection    : {collection.name}")
-output.append(f"# Blend File    : {bpy.data.filepath}")
+
+# FIX: handle unsaved file
+blend_path = bpy.data.filepath if bpy.data.filepath else "UNSAVED"
+output.append(f"# Blend File    : {blend_path}")
+
 output.append("# ----------------------------------------\n")
 
 # Notes / Disclaimer
