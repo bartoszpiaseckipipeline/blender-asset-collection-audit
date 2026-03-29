@@ -18,8 +18,8 @@
 # - Metadata (scene, file, timestamp)
 #
 # TODO:
-# - Polycount reporting per object
-# - Detect meshes with zero vertices / corupted
-# - Naming consistency check (case sensitivity issues)
+# - Polycount reporting per object (triangle count)
+# - Detect meshes with zero vertices / empty geometry
+# - Naming convention validation (SM_, COL_, LOD) + case consistency
 #
 # ------------------------------------------------------------
