@@ -12,13 +12,12 @@ from datetime import datetime
 # GitHub        : https://github.com/bartoszpiaseckipipeline
 # License       : MIT
 #
-# Version       : 0.1.1
+# Version       : 0.2.0
 #
-#      0.0.0
+#      0.1.0
 #      │ │ └── PATCH (bug fixes)
 #      │ └──── MINOR (new features)
 #      └────── MAJOR (breaking changes)
-#
 #
 # Usage:
 #
@@ -30,11 +29,47 @@ from datetime import datetime
 #
 # Note:
 # - The script requires an active collection selection.
+# 
+# Changelog:
+#
+# Version       : 0.1.1
+# - fix
+# Version       : 0.2.0
+# - Added readable scale validation
+# - Added negative scale detection (SCALE REVERSED!)
 #
 # --------------------------------
 
+
 # Store output lines
 output = []
+
+
+def get_scale_status(obj, tolerance=0.0001):
+    """
+    Returns readable scale status:
+    - OK → uniform + applied
+    - CHECK SCALE! → non-uniform or not applied
+    - SCALE REVERSED! → negative scale detected
+    """
+    sx, sy, sz = obj.scale
+
+    # Detect negative scale (mirror)
+    has_negative = sx < 0 or sy < 0 or sz < 0
+
+    is_uniform = abs(sx - sy) < tolerance and abs(sx - sz) < tolerance
+    is_applied = (
+        abs(abs(sx) - 1.0) < tolerance and
+        abs(abs(sy) - 1.0) < tolerance and
+        abs(abs(sz) - 1.0) < tolerance
+    )
+
+    if has_negative:
+        return "scale --- SCALE REVERSED!"
+    elif is_uniform and is_applied:
+        return "scale --- OK"
+    else:
+        return "scale --- CHECK SCALE!"
 
 
 def collect_collection_data(collection, indent=0):
@@ -44,11 +79,19 @@ def collect_collection_data(collection, indent=0):
     """
     output.append("  " * indent + f"[COLLECTION] {collection.name}")
 
-    # FIX: correct indentation + sorting
     for obj in sorted(collection.objects, key=lambda o: o.name):
-        output.append("  " * (indent + 1) + f"- {obj.name} [{obj.type}]")
+        if obj.type == 'MESH':
+            scale_status = get_scale_status(obj)
+            output.append(
+                "  " * (indent + 1) +
+                f"- {obj.name} [{obj.type}] {scale_status}"
+            )
+        else:
+            output.append(
+                "  " * (indent + 1) +
+                f"- {obj.name} [{obj.type}]"
+            )
 
-    # FIX: sorted children for stable output
     for child in sorted(collection.children, key=lambda c: c.name):
         collect_collection_data(child, indent + 1)
 
@@ -61,7 +104,7 @@ if layer_collection is None:
 
 collection = layer_collection.collection
 
-# Metadata header (production-style)
+# Metadata header
 output.append("# ----------------------------------------")
 output.append("# Blender Asset Collection Audit Report")
 output.append("# Author        : Bartosz Piasecki")
@@ -72,16 +115,19 @@ output.append(f"# Export Date   : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 output.append(f"# Scene         : {bpy.context.scene.name}")
 output.append(f"# Collection    : {collection.name}")
 
-# FIX: handle unsaved file
+# Handle unsaved file
 blend_path = bpy.data.filepath if bpy.data.filepath else "UNSAVED"
 output.append(f"# Blend File    : {blend_path}")
 
 output.append("# ----------------------------------------\n")
 
-# Notes / Disclaimer
+# Notes
 output.append("# Notes:")
 output.append("# - This report is generated automatically and may not detect all asset issues.")
-output.append("# - Use as a support tool, not a final validation step.")
+output.append("# - Scale check:")
+output.append("#     OK               → uniform scale and applied (1,1,1)")
+output.append("#     CHECK SCALE!     → non-uniform or not applied")
+output.append("#     SCALE REVERSED!  → negative scale (mirror)")
 output.append("# ----------------------------------------\n")
 
 # Collect hierarchy
